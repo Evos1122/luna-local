@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.gguf
+Model.gguf
+workspace/*
+!workspace/README.txt
+.env
+.venv/
+settings.json
+*.tmp
+.codex-backups/
+.freebuff/
+*.log

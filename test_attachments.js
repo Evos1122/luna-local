@@ -1,0 +1,27 @@
+(async()=>{
+const results=[];const check=(ok,name)=>{if(!ok)throw new Error(name);results.push(name);};
+const settle=async()=>{for(let i=0;i<100;i++){await new Promise(r=>setTimeout(r,5));if(!readingFiles)return;}throw new Error('read timeout');};
+await status();
+const dt=new DataTransfer();dt.items.add(new File(['hello from file'],'notes.txt',{type:'text/plain'}));
+window.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));await settle();
+check(document.querySelectorAll('.attachment-item').length===1,'drop previews text file');
+const png=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+const clip=new DataTransfer();clip.items.add(new File([png],'screenshot.png',{type:'image/png'}));
+$('prompt').dispatchEvent(new ClipboardEvent('paste',{clipboardData:clip,bubbles:true,cancelable:true}));await settle();
+check(document.querySelectorAll('.attachment-item img').length===1,'paste previews screenshot');
+await $('form').onsubmit({preventDefault(){}});
+check(window.lastBody.messages[0].content.includes('hello from file'),'file content sent to chat');
+check(window.lastBody.messages[0].images.length===1,'screenshot sent to chat');
+check(!document.querySelector('.attachment-item'),'success clears attachments');
+const input=new DataTransfer();input.items.add(new File(['retry me'],'retry.py'));$('image').files=input.files;$('image').dispatchEvent(new Event('change'));await settle();
+window.failChat=true;await $('form').onsubmit({preventDefault(){}});
+check(document.querySelector('.attachment-item').textContent.includes('retry.py'),'failed send retains file');window.failChat=false;
+await addFiles([new File(['%PDF-1.7'],'bad.pdf',{type:'application/pdf'}),new File(['x'.repeat(12001)],'large.txt')]);
+check(document.querySelectorAll('.attachment-item').length===1,'unsupported and oversized files rejected without clearing valid file');
+document.querySelector('.attachment-item button').click();check(!document.querySelector('.attachment-item'),'remove attachment');
+await addFiles([new File([png],'1.png'),new File([png],'2.png'),new File([png],'3.png')]);
+check(document.querySelectorAll('.attachment-item').length===2,'image limit enforced');
+$('new').click();check(!document.querySelector('.attachment-item'),'new chat clears attachments');
+$('prompt').value='ordinary text';await $('form').onsubmit({preventDefault(){}});check(window.lastBody.messages[0].content==='ordinary text','ordinary text chat still works');
+document.body.innerHTML='<pre id="test-result">PASS '+results.join('\n')+'</pre>';
+})().catch(e=>{document.body.innerHTML='<pre id="test-result">FAIL '+e.stack+'</pre>';});
